@@ -15,9 +15,6 @@ struct AlertItem: Identifiable {
     let dismissButton: Alert.Button
 }
 
-//case invalidURL
-//case invalidResponse
-//case invalidData
 struct AlertContext {
     static let invalidURL = AlertItem(title: Text("Server Error"),
                                      message: Text("There was an issue connecting to the server. /nPlease check the URL or your internet connection."),
