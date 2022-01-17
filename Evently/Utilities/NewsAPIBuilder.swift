@@ -14,12 +14,12 @@ protocol APIBuilder {
     var path: String { get }
 }
 
-enum NewsAPIEndpoints {
+enum APIEndpoints {
     case getNewsArticles
     case getWeather
 }
 
-extension NewsAPIEndpoints: APIBuilder {
+extension APIEndpoints: APIBuilder {
     var urlRequest: URLRequest {
         return URLRequest(url: self.baseURL.appendingPathComponent(path))
     }
