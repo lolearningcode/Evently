@@ -1,35 +1,81 @@
 //
-//  EventViewModel.swift
+//  NewsViewModel.swift
 //  Evently
 //
 //  Created by Cleo Howard on 1/16/22.
 //
 
-import SwiftUI
+import Combine
 
-final class EventViewModel: ObservableObject {
-    @Published var events: [Events] = []
+protocol NewsViewModel {
+    func getNewsArticles()
+    func getWeather()
+}
+
+final class NewsViewModelImpl: ObservableObject, NewsViewModel {
     
-    func getEvents() {
-        NetworkManager.shared.getEvents { [unowned self] result in
-            
-            DispatchQueue.main.async {
+    private let newsService: NewsService
+    
+    @Published var articles: [Article] = []
+    @Published var forecast: [Forecast] = []
+    @Published var alertItem: AlertItem?
+    @Published var isLoading = false
+    
+    private var cancellables = Set<AnyCancellable>()
+    
+    init(newsService: NewsService) {
+        self.newsService = newsService
+    }
+    
+    func getNewsArticles() {
+        isLoading = true
+        
+        let cancellable = newsService
+            .request(from: .getNewsArticles)
+            .sink { [self] result in
                 switch result {
-                
-                case .success(let events):
-                    self.events = events
+                case .finished:
+                    self.isLoading = false
                 case .failure(let error):
                     switch error {
-                        
                     case .invalidURL:
-                        print("URL Failed")
+                        alertItem = AlertContext.invalidURL
                     case .invalidResponse:
-                        print("Response Error")
+                        alertItem = AlertContext.invalidResponse
                     case .decodingData:
-                        print("Invalid Data")
+                        alertItem = AlertContext.invalidData
                     }
                 }
+            } receiveValue: { response in
+                self.articles = response.articles
             }
-        }
+        
+        self.cancellables.insert(cancellable)
     }
+    
+    func getWeather() {
+        self.isLoading = true
+        
+        let cancellable = newsService
+            .requestWeather(from: .getNewsArticles)
+            .sink { [self] result in
+                switch result {
+                case .finished:
+                    self.isLoading = false
+                case .failure(let error):
+                    switch error {
+                    case .invalidURL:
+                        alertItem = AlertContext.invalidURL
+                    case .invalidResponse:
+                        alertItem = AlertContext.invalidResponse
+                    case .decodingData:
+                        alertItem = AlertContext.invalidData
+                    }
+                }
+            } receiveValue: { response in
+                self.forecast = response.forecast
+            }
+        self.cancellables.insert(cancellable)
+    }
+    
 }
